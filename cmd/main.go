@@ -5,23 +5,23 @@ import (
 
 	simplerestapi "github.com/2hard4me/simple-rest-api"
 	"github.com/2hard4me/simple-rest-api/pkg/handler"
+	"github.com/2hard4me/simple-rest-api/pkg/logging"
 	"github.com/2hard4me/simple-rest-api/pkg/repository"
 	"github.com/2hard4me/simple-rest-api/pkg/service"
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
 
 func main() {
-	logrus.SetFormatter(new(logrus.JSONFormatter))
+	logger := logging.GetLogger()
 
 	if err := initConfig(); err != nil {
-		logrus.Fatalf("error initializing configs: %s", err.Error())
+		logger.Fatalf("error initializing configs: %s", err.Error())
 	}
 
 	if err := godotenv.Load(); err != nil {
-		logrus.Fatalf("error loading env variables: %s", err.Error())
+		logger.Fatalf("error loading env variables: %s", err.Error())
 	}
 
 	db, err := repository.NewPostgresDB(repository.Config{
@@ -33,8 +33,10 @@ func main() {
 		SSLMode: viper.GetString("db.sslmode"),
 	})
 	if err != nil {
-		logrus.Fatalf("failed to initialize database: %s", err.Error() )
+		logger.Fatalf("failed to initialize database: %s", err.Error() )
 	}
+
+	logger.Println("DB initializing -- Success")
 
 	repos := repository.NewRepository(db)
 	services := service.NewService(repos)
@@ -42,7 +44,7 @@ func main() {
 
 	srv := new(simplerestapi.Server)
 	if err := srv.Run(viper.GetString("port"), handlers.InitRoutes()); err != nil {
-		logrus.Fatalf("error occured while running http server: %s", err.Error())
+		logger.Fatalf("error occured while running http server: %s", err.Error())
 	}
 	
 }
